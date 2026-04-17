@@ -1,33 +1,27 @@
 const jwt = require("jsonwebtoken");
-const private_key = require("../auth/private_key.js");
-
 const authMdlr = (req, res, next) => {
-  const token = req.headers.authorization;
+  const authHeader = req.headers.authorization;
 
-  console.log("authorization header = " + token);
-
-  if (!token) {
-    const message =
-      "Vous n'avez pas fourni de jeton d'authentification. Ajoutez-en un dans le header.";
-    return res.status(401).json({ message });
+  console.log("Authorization Header:", authHeader); 
+  if (!authHeader) {
+    return res.status(401).json({ message: "Token manquant" });
   }
 
-  jwt.verify(token, private_key, (error, decodedToken) => {
-    if (error) {
-      const message =
-        "L'utilisateur n'est pas autorisé à accéder à cette ressource.";
-      return res.status(401).json({ message, data: error });
-    }
+  const parts = authHeader.split(" ");
 
-    const userId = decodedToken.idUser;
+  if (parts.length !== 2 || parts[0] !== "Bearer") {
+    return res.status(401).json({ message: "Format du token invalide" });
+  }
 
-    if (req.body && req.body.userId && req.body.userId !== userId) {
-      const message = "L'identifiant de l'utilisateur est invalide.";
-      return res.status(401).json({ message });
-    } else {
-      next();
-    }
-  });
+  const token = parts[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token invalide ou expiré" });
+  }
 };
 
 module.exports = authMdlr;

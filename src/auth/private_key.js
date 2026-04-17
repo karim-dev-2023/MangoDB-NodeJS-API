@@ -1,3 +1,3 @@
-const privateKey = "edf5451716a5c0ce4bf66c926ac993751834c847f43865cb61b6fdf10fc04af5cf135c853031e604091db3a2994c6caae08af5ef6f30aa993fc54caf5ce15271";
+const privateKey = process.env.JWT_SECRET;
 
 module.exports = privateKey;

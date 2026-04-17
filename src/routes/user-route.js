@@ -1,50 +1,42 @@
-const User = require('../models/user-model');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const private_key = require('../auth/private_key.js');
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const User = require("../models/user-model");
 
 const userLogin = async (req, res) => {
+  const { username, password } = req.body;
+
   try {
-    const user = await User.findOne({ username: req.body.username });
+    const user = await User.findOne({ username });
 
     if (!user) {
-      const message = "L'utilisateur demandé n'existe pas.";
-      return res.status(404).json({ message });
+      return res.status(401).json({ message: "Utilisateur introuvable" });
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      req.body.password,
-      user.password
-    );
+    const same = await bcrypt.compare(password, user.password);
 
-    if (!isPasswordValid) {
-      const message = "Le mot de passe de l'utilisateur est incorrect";
-      return res.status(401).json({
-        msg: message,
-        data: req.body.username
-      });
+    if (!same) {
+      return res.status(401).json({ message: "Mot de passe incorrect" });
     }
 
     const token = jwt.sign(
-      { idUser: user._id, uName: user.username },
-      private_key,
-      { expiresIn: '2h' }
+      {
+        userId: user._id,
+        username: user.username,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" },
     );
 
-    const message = "L'utilisateur a été trouvé et connecté avec succès";
-    return res.json({
-      msg: message,
-      data: user.username,
-      token
+    res.status(200).json({
+      message: "Connexion réussie",
+      token: token,
     });
-
   } catch (error) {
-    const message = "L'utilisateur n'a pas pu être connecté. Réessayez dans quelques instants";
-    return res.status(500).json({
-      message,
-      data: error
-    });
+    console.error(error);
+    res.status(500).json({ message: "Erreur serveur" });
   }
 };
 
-module.exports = { userLogin };
+module.exports = {
+  userLogin,
+};
